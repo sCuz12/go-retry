@@ -15,3 +15,7 @@ var Linear BackoffStrategy = func(attempt int, d time.Duration) time.Duration {
 var Exponential BackoffStrategy = func(attempt int, d time.Duration) time.Duration {                                                                                                                              
       return d * (1 << attempt)  // d * 2^attempt
 }  
+
+var TestBackoff BackoffStrategy = func(attempt int, initialDelay time.Duration) time.Duration {
+	return 100 * time.Second
+}

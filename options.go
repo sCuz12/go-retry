@@ -17,6 +17,9 @@ func defaultConfig() *config {
 	return &config{
 		maxAttempts: 3,
 		fixedDelay:  10 * time.Millisecond,
+		initialDelay: 3 * time.Millisecond,
+		maxDelay:     30 * time.Second,
+        backoff:      Exponential,  // ← default strategy    
 	}
 }
 func WithMaxAttempts(n int) Option {
@@ -30,3 +33,7 @@ func WithFixedDelay(d time.Duration) Option {
 func WithBackoff(backoff BackoffStrategy) Option {
 	return func(c *config) {c.backoff = backoff}
 } 
+
+func WithInitialDelay (d time.Duration) Option {
+	return func(c *config) {c.initialDelay = d}
+}

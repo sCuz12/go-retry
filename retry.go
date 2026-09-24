@@ -17,9 +17,16 @@ func DoWithContext(ctx context.Context,fn func(context.Context) error,opts ...Op
 	for _,opt := range opts {
 		opt(cfg)
 	}
+
 	var err error
 
 	for i:=0 ; i<cfg.maxAttempts;i++ {
+		delay := cfg.backoff(i,cfg.initialDelay)
+
+		if delay > cfg.maxDelay {
+			delay = cfg.maxDelay 
+		}
+
 		//respect cancellation global
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -36,7 +43,7 @@ func DoWithContext(ctx context.Context,fn func(context.Context) error,opts ...Op
 		select {
 		case <- ctx.Done():
 			return ctx.Err()
-		case <-time.After(cfg.fixedDelay):
+		case <-time.After(delay):
 
 		}
 	}
