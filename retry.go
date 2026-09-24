@@ -2,8 +2,11 @@ package retry
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+var ErrInvalidMaxDelay = errors.New("retry : max delay must be positive")
 
  func Do(fn func() error, opts ...Option) error {
      return DoWithContext(context.Background(), func(_ context.Context) error {
@@ -20,12 +23,12 @@ func DoWithContext(ctx context.Context,fn func(context.Context) error,opts ...Op
 
 	var err error
 
+	if cfg.maxDelay <= 0 {
+		return ErrInvalidMaxDelay
+	}
+	
 	for i:=0 ; i<cfg.maxAttempts;i++ {
-		delay := cfg.backoff(i,cfg.initialDelay)
-
-		if delay > cfg.maxDelay {
-			delay = cfg.maxDelay 
-		}
+		delay := delayForAttempt(cfg, i)
 
 		//respect cancellation global
 		if ctx.Err() != nil {
@@ -48,4 +51,12 @@ func DoWithContext(ctx context.Context,fn func(context.Context) error,opts ...Op
 		}
 	}
 	return err
+}
+
+func delayForAttempt(cfg *config, attempt int) time.Duration {
+	delay := cfg.backoff(attempt, cfg.initialDelay)
+	if delay > cfg.maxDelay {
+		return cfg.maxDelay
+	}
+	return delay
 }

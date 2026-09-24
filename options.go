@@ -37,3 +37,7 @@ func WithBackoff(backoff BackoffStrategy) Option {
 func WithInitialDelay (d time.Duration) Option {
 	return func(c *config) {c.initialDelay = d}
 }
+
+func WithMaxDelay (d time.Duration) Option {
+	return func(c *config) {c.maxDelay = d}
+}
