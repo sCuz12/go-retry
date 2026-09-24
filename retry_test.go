@@ -2,6 +2,7 @@ package retry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -70,4 +71,53 @@ func TestWithMaxAttempts(t *testing.T) {
           t.Fatalf("expected 5 attempts, got %d", calls)
     }  
 	
+}
+
+func TestWithFixedStrategy(t *testing.T) {
+	ctx , cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+
+	optionInitial := WithInitialDelay(time.Millisecond * 100)
+	options := WithBackoff(Fixed)
+
+	calls := 0
+	fn := func(ctx context.Context) error {
+		calls++
+		fmt.Println("Hello from test with fixed strategy backoff ")
+		return fmt.Errorf("Something failed")	
+	}
+
+	err := DoWithContext(ctx,fn,optionInitial,options)
+
+	if err == nil {
+		t.Fatalf("Expected error")
+	}
+
+	if calls != 3 {
+		t.Fatalf("Expected 3 calls")
+	}
+}
+
+
+func TestWithTestStrategyDeadline(t *testing.T) {
+	ctx , cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+
+	options := WithBackoff(TestBackoff)
+
+	calls := 0 
+
+	fn := func(ctx context.Context) error {
+		calls++
+		fmt.Println("fired")
+		return fmt.Errorf("Something went wrong")
+	}
+
+	err := DoWithContext(ctx, fn, options)
+
+
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("The error should be context deadline ")
+	}
+
 }
