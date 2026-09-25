@@ -8,9 +8,8 @@ import (
 	"time"
 )
 
-
 func TestDoContext(t *testing.T) {
-	ctx , cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
 
@@ -19,7 +18,7 @@ func TestDoContext(t *testing.T) {
 		return nil
 	}
 
-	err := DoWithContext(ctx,fn)
+	err := DoWithContext(ctx, fn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +26,7 @@ func TestDoContext(t *testing.T) {
 
 func TestWithError(t *testing.T) {
 
-	ctx , cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
 
@@ -38,19 +37,18 @@ func TestWithError(t *testing.T) {
 		return fmt.Errorf("Something failed")
 	}
 
-	
-	err := DoWithContext(ctx,fn) 
+	err := DoWithContext(ctx, fn)
 
 	if err == nil {
 		t.Fatal("Should have an error")
 	}
-	if calls != 3 {                                                                               
-          t.Fatalf("expected 3 attempts, got %d", calls)
-    }  
+	if calls != 3 {
+		t.Fatalf("expected 3 attempts, got %d", calls)
+	}
 }
 
 func TestWithMaxAttempts(t *testing.T) {
-	ctx , cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	calls := 0
@@ -62,19 +60,19 @@ func TestWithMaxAttempts(t *testing.T) {
 
 	options := WithMaxAttempts(5)
 
-	err := DoWithContext(ctx,fn,options) 
+	err := DoWithContext(ctx, fn, options)
 
 	if err == nil {
 		t.Fatal("Should have an error")
 	}
-	if calls != 5 {                                                                               
-          t.Fatalf("expected 5 attempts, got %d", calls)
-    }  
-	
+	if calls != 5 {
+		t.Fatalf("expected 5 attempts, got %d", calls)
+	}
+
 }
 
 func TestWithFixedStrategy(t *testing.T) {
-	ctx , cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	optionInitial := WithInitialDelay(time.Millisecond * 100)
@@ -84,10 +82,10 @@ func TestWithFixedStrategy(t *testing.T) {
 	fn := func(ctx context.Context) error {
 		calls++
 		fmt.Println("Hello from test with fixed strategy backoff ")
-		return fmt.Errorf("Something failed")	
+		return fmt.Errorf("Something failed")
 	}
 
-	err := DoWithContext(ctx,fn,optionInitial,options)
+	err := DoWithContext(ctx, fn, optionInitial, options)
 
 	if err == nil {
 		t.Fatalf("Expected error")
@@ -98,15 +96,13 @@ func TestWithFixedStrategy(t *testing.T) {
 	}
 }
 
-
 func TestWithTestStrategyDeadline(t *testing.T) {
-	ctx , cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	options := WithBackoff(TestBackoff)
+	options := WithBackoff(testBackoff)
 
-	calls := 0 
-	
+	calls := 0
 
 	fn := func(ctx context.Context) error {
 		calls++
@@ -120,16 +116,14 @@ func TestWithTestStrategyDeadline(t *testing.T) {
 		t.Fatal("The error should be context deadline ")
 	}
 
-
 }
-
 
 func TestWithMaxDelay(t *testing.T) {
 	const maxDelay = 10 * time.Millisecond
 
 	cfg := defaultConfig()
 	WithMaxDelay(maxDelay)(cfg)
-	WithBackoff(TestBackoff)(cfg)
+	WithBackoff(testBackoff)(cfg)
 
 	delay := delayForAttempt(cfg, 0)
 	if delay != maxDelay {
@@ -151,7 +145,7 @@ func TestWithMaxDelay(t *testing.T) {
 		ctx,
 		fn,
 		WithMaxDelay(maxDelay),
-		WithBackoff(TestBackoff),
+		WithBackoff(testBackoff),
 	)
 
 	if !errors.Is(err, operationErr) {
@@ -160,4 +154,53 @@ func TestWithMaxDelay(t *testing.T) {
 	if calls != 3 {
 		t.Fatalf("expected 3 attempts, got %d", calls)
 	}
+}
+func TestValidateInitialDelay(t *testing.T) {
+	initialDelay := -20 * time.Millisecond
+
+	optInitialDelay := WithInitialDelay(initialDelay)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	defer cancel()
+
+	fn := func(context.Context) error {
+		fmt.Println("test")
+		return nil
+	}
+
+	err := DoWithContext(
+		ctx,
+		fn, optInitialDelay)
+
+	if !errors.Is(err, ErrInvalidInitialDelay) {
+		t.Fatalf("expected Invalid initial time error")
+	}
+
+}
+
+func TestValidateMaxAttempts(t *testing.T) {
+	maxAttempts := -5
+
+	optMaxAttempts := WithMaxAttempts(maxAttempts)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	defer cancel()
+
+	fn := func(context.Context) error {
+		fmt.Println("test")
+		return nil
+	}
+
+	err := DoWithContext(
+		ctx,
+		fn, optMaxAttempts)
+
+	if !errors.Is(err, ErrInvalidMaxAttempts) {
+		t.Fatalf("expected Invalid initial time error")
+	}
+
+}
+
+func testBackoff(_ int, _ time.Duration) time.Duration {
+	return 100 * time.Second
 }

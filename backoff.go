@@ -2,20 +2,17 @@ package retry
 
 import "time"
 
-type BackoffStrategy func(attempt int ,initialDelay time.Duration) time.Duration
+type BackoffStrategy func(attempt int, initialDelay time.Duration) time.Duration
 
-var Fixed BackoffStrategy = func(attempt int, d time.Duration) time.Duration {
-	return d
+
+
+func Fixed(_ int, delay time.Duration) time.Duration {
+      return delay
 }
-
-var Linear BackoffStrategy = func(attempt int, d time.Duration) time.Duration {
+func Linear (attempt int, d time.Duration) time.Duration {
 	return d * time.Duration(attempt+1)
 }
 
-var Exponential BackoffStrategy = func(attempt int, d time.Duration) time.Duration {                                                                                                                              
-      return d * (1 << attempt)  // d * 2^attempt
-}  
-
-var TestBackoff BackoffStrategy = func(attempt int, initialDelay time.Duration) time.Duration {
-	return 100 * time.Second
+func Exponential(attemt int , d time.Duration) time.Duration {
+	return d * (1 <<attemt) // d * 2^attempt
 }
